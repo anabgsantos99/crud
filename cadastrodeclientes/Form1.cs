@@ -8,16 +8,32 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
+using MySql.Data.MySqlClient;
 
 namespace cadastrodeclientes
 {
     public partial class frmCadastrodeClientes : Form
     {
+        //Conexão com obanco de dados MySQL
+        MySqlConnection Conexao;
+        string data_source = "datasource=localhost; username=root; password=; database=db_cadastro";
+        
+        
         public frmCadastrodeClientes()
         {
             InitializeComponent();
         }
 
+        
+        private bool isValidEmail(string email)
+        {
+            //Validação Regex
+
+            string pattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+            Regex regex = new Regex(pattern);
+            return regex.IsMatch(email);
+        }
+        
         private bool isValidCPFLength(string cpf)
         {
             //Remover quaisquer caracteres não numéricos (como pontos e traços)
@@ -30,15 +46,6 @@ namespace cadastrodeclientes
             }
 
             return true;
-        }
-
-        private bool isValidEmail(string email)
-        {
-            //Validação Regex
-
-            string pattern = @"^[a-zA-Z0-9._%+-]@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
-            Regex regex = new Regex(pattern);
-            return regex.IsMatch(email);
         }
 
         private void btnSalvar_Click(object sender, EventArgs e)
@@ -79,6 +86,49 @@ namespace cadastrodeclientes
                         MessageBoxIcon.Warning);
                     return; //Impede o prosseguimento se o CPF for inválido
                 }
+
+                //Cria a conexão com o banco de dados
+                Conexao = new MySqlConnection(data_source);
+                Conexao.Open();
+
+                //Teste de abertura de banco
+                //MessageBox.Show("Conexão aberta com sucesso");
+
+                //Comando SQL para inserir um novo cliente no banco de dados
+                MySqlCommand cmd = new MySqlCommand
+                {
+                    Connection = Conexao
+                };
+
+                cmd.Prepare();
+
+                cmd.CommandText = "INSERT INTO dadosdecliente(nomecompleto, nomesocial, email, cpf) " +
+                    "VALUES (@nomecompleto, @nomesocial, @email, @cpf)";
+
+                //Adiciona os parâmetros com os dados do formulário
+                cmd.Parameters.AddWithValue("@nomecompleto", txtNomeCompleto.Text.Trim());
+                cmd.Parameters.AddWithValue("@nomesocial", txtNomeSocial.Text.Trim());
+                cmd.Parameters.AddWithValue("@email", email);
+                cmd.Parameters.AddWithValue("@cpf", cpf);
+
+
+                //Executa o comando de inserção no banco
+                cmd.ExecuteNonQuery();
+
+                //Mensagem de sucesso
+                MessageBox.Show("Contato inserido com Sucesso",
+                    "Sucesso",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+            }
+            catch(MySqlException ex)
+            {
+                //Trata erros relacionados ao MySQL
+                MessageBox.Show("Erro " + ex.Number + " ocorreu: " + ex.Message, 
+                    "Erro",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
@@ -90,10 +140,17 @@ namespace cadastrodeclientes
                     MessageBoxIcon.Error);
 
             }
+            finally
+            {
+                //Garante que a conexão com o banco de dados será fechada, mesmo se ocorrer erro
+                if (Conexao != null && Conexao.State == ConnectionState.Open)
+                {
+                    Conexao.Close();
 
-            MessageBox.Show("Realizado com sucesso",
-                    "Cadastro",
-                    MessageBoxButtons.OK);
+                    //Teste de afechamento de banco
+                    //MessageBox.Show("Conexão fechada com sucesso");
+                }
+            }
         }
     }
 }
