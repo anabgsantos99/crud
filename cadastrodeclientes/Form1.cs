@@ -20,8 +20,8 @@ namespace cadastrodeclientes
         MySqlConnection Conexao;
         string data_source = "datasource=localhost; username=root; password=; database=db_cadastro";
 
-        private int ?codigo_cliente = null;
-        
+        private int? codigo_cliente = null;
+
         public frmCadastrodeClientes()
         {
             InitializeComponent();
@@ -86,7 +86,7 @@ namespace cadastrodeclientes
                     //Adiciona a linha ao ListView
                     lstCliente.Items.Add(new ListViewItem(row));
                 }
- 
+
             }
             catch (MySqlException ex)
             {
@@ -126,7 +126,7 @@ namespace cadastrodeclientes
             string query = "SELECT * FROM dadosdecliente ORDER BY codigo DESC";
             carregar_clientes_com_query(query);
         }
-        
+
         private bool isValidEmail(string email)
         {
             //Validação Regex
@@ -135,7 +135,7 @@ namespace cadastrodeclientes
             Regex regex = new Regex(pattern);
             return regex.IsMatch(email);
         }
-        
+
         private bool isValidCPFLength(string cpf)
         {
             //Remover quaisquer caracteres não numéricos (como pontos e traços)
@@ -155,13 +155,13 @@ namespace cadastrodeclientes
             try
             {
                 //Validação de campos obrigatórios 
-                if(string.IsNullOrEmpty(txtNomeCompleto.Text.Trim()) ||
+                if (string.IsNullOrEmpty(txtNomeCompleto.Text.Trim()) ||
                     string.IsNullOrEmpty(txtEmail.Text.Trim()) ||
                     string.IsNullOrEmpty(txtCPF.Text.Trim()))
                 {
-                    MessageBox.Show("Todos os campos devem ser preenchidos.", 
-                        "Validação", 
-                        MessageBoxButtons.OK, 
+                    MessageBox.Show("Todos os campos devem ser preenchidos.",
+                        "Validação",
+                        MessageBoxButtons.OK,
                         MessageBoxIcon.Warning);
                     return; //Impede o prosseguimento se algum campo estiver vazio
                 }
@@ -266,10 +266,10 @@ namespace cadastrodeclientes
                 tabControl1.SelectedIndex = 1;
 
             }
-            catch(MySqlException ex)
+            catch (MySqlException ex)
             {
                 //Trata erros relacionados ao MySQL
-                MessageBox.Show("Erro " + ex.Number + " ocorreu: " + ex.Message, 
+                MessageBox.Show("Erro " + ex.Number + " ocorreu: " + ex.Message,
                     "Erro",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -307,7 +307,7 @@ namespace cadastrodeclientes
         {
             ListView.SelectedListViewItemCollection clientedaselecao = lstCliente.SelectedItems;
 
-            foreach(ListViewItem item in clientedaselecao)
+            foreach (ListViewItem item in clientedaselecao)
             {
                 codigo_cliente = Convert.ToInt32(item.SubItems[0].Text);
 
@@ -329,7 +329,7 @@ namespace cadastrodeclientes
 
         private void btnNovoCliente_Click(object sender, EventArgs e)
         {
-            
+
             codigo_cliente = null;
             txtNomeCompleto.Text = String.Empty;
             txtNomeSocial.Text = "";
@@ -338,5 +338,81 @@ namespace cadastrodeclientes
 
             txtNomeCompleto.Focus();
         }
+
+        private void toolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            excluir_clientes();
+        }
+
+        private void btnExcluirCliente_Click(object sender, EventArgs e)
+        {
+            excluir_clientes();
+        }
+
+        private void excluir_clientes()
+        {
+            try
+            {
+
+                DialogResult opcaoDigitada = MessageBox.Show("Tem certeza que deseja excluir o registro de codigo: " + codigo_cliente,
+                                                             "Tem certeza?",
+                                                             MessageBoxButtons.YesNo,
+                                                             MessageBoxIcon.Warning);
+
+                if (opcaoDigitada == DialogResult.Yes)
+                {
+                    //Excluir os dados no Banco de Dados
+
+                    Conexao = new MySqlConnection(data_source);
+                    Conexao.Open();
+
+                    MySqlCommand cmd = new MySqlCommand();
+
+                    cmd.Connection = Conexao;
+
+                    cmd.Prepare();
+
+                    cmd.CommandText = "DELETE FROM dadosdecliente WHERE codigo = @codigo";
+
+                    cmd.Parameters.AddWithValue("@codigo", codigo_cliente);
+
+                    cmd.ExecuteNonQuery();
+
+                    MessageBox.Show("Os dados do cliente foram EXCLUÍDOS!",
+                                    "Sucesso",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Information);
+                }
+
+                carregar_clientes();
+            }
+            catch (MySqlException ex)
+            {
+                //Trata erros relacionados ao MySQL
+                MessageBox.Show("Erro " + ex.Number + " ocorreu: " + ex.Message,
+                    "Erro",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+
+                //Trata outros tipos de erro
+                MessageBox.Show("Ocorreu: " + ex.Message,
+                    "Erro",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+            }
+            finally
+            {
+                //Garante que a conexão com o banco de dados será fechada, mesmo se ocorrer erro
+                if (Conexao != null && Conexao.State == ConnectionState.Open)
+                {
+                    Conexao.Close();
+                }
+            }
+        }
+        
     }
 }
